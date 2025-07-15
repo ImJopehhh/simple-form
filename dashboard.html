@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+</head>
+<body>
+  <h1>Selamat datang di Dashboard</h1>
+  <p id="status">Mendeteksi role...</p>
+  <button id="logout">Logout</button>
+
+  <div id="admin-panel" style="display:none;">
+    <h2>Panel Admin</h2>
+    <p>Di sini bisa lihat semua form dari member</p>
+  </div>
+
+  <div id="member-panel" style="display:none;">
+    <h2>Form Member</h2>
+    <form id="form-member">
+      <input type="text" id="data" placeholder="Isi data apapun" required />
+      <button type="submit">Kirim</button>
+    </form>
+  </div>
+
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import {
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      doc, getDoc, addDoc, collection, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const statusEl = document.getElementById("status");
+    const adminPanel = document.getElementById("admin-panel");
+    const memberPanel = document.getElementById("member-panel");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.href = "index.html";
+
+      const snap = await getDoc(doc(db, "users", user.uid));
+      const data = snap.data();
+      statusEl.textContent = `Login sebagai ${data.role}`;
+
+      if (data.role === "admin") {
+        adminPanel.style.display = "block";
+      } else if (data.role === "member") {
+        memberPanel.style.display = "block";
+      } else {
+        statusEl.textContent = "Role tidak dikenal";
+      }
+    });
+
+    document.getElementById("logout").onclick = () => signOut(auth).then(() => location.href = "index.html");
+
+    document.getElementById("form-member")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const val = document.getElementById("data").value;
+      await addDoc(collection(db, "formdata"), {
+        uid: auth.currentUser.uid,
+        data: val,
+        created: serverTimestamp()
+      });
+      alert("Data disimpan.");
+    });
+  </script>
+</body>
+</html>
