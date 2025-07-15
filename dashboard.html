@@ -5,11 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Pesan</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f5f5f5; }
-    #pesan-box { border: 1px solid #ccc; padding: 1rem; max-height: 300px; overflow-y: auto; background: #fff; }
-    .pesan { margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 1px solid #eee; }
-    .meta { font-size: 0.9rem; color: #555; }
-    .send-box { margin-top: 1.5rem; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+
+    #pesan-box {
+      border: 1px solid #ccc;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      background: #fff;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .pesan {
+      margin-bottom: 1rem;
+      padding-bottom: .5rem;
+      border-bottom: 1px solid #eee;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .meta {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .send-box {
+      margin-top: 1.5rem;
+    }
+
+    input[type="text"] {
+      width: 80%;
+      padding: 8px;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 8px 12px;
+      font-size: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      input[type="text"] {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      button {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -21,7 +71,7 @@
 
   <div class="send-box">
     <form id="form-pesan">
-      <input type="text" id="pesan" placeholder="Tulis pesan..." required style="width: 80%;" />
+      <input type="text" id="pesan" placeholder="Tulis pesan..." required />
       <button type="submit">Kirim</button>
     </form>
   </div>
@@ -33,7 +83,14 @@
       signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
-      collection, addDoc, onSnapshot, serverTimestamp, doc, getDoc, query, orderBy
+      collection,
+      addDoc,
+      onSnapshot,
+      serverTimestamp,
+      doc,
+      getDoc,
+      query,
+      orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const userRoleEl = document.getElementById("user-role");
@@ -50,7 +107,6 @@
       currentData = data;
       userRoleEl.textContent = `${data.role} (${user.email})`;
 
-      // Listener pesan real-time
       const q = query(collection(db, "messages"), orderBy("timestamp", "asc"));
       onSnapshot(q, (snapshot) => {
         pesanBox.innerHTML = "";
