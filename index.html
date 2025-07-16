@@ -3,31 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login Pesan</title>
+  <title>Pesan Publik</title>
   <style>
     body {
       font-family: sans-serif;
-      background: #f5f5f5;
+      background: #f4f4f4;
       padding: 2rem;
     }
-    .container {
-      max-width: 400px;
-      margin: auto;
-      background: #fff;
-      padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    h1 { margin-bottom: .5rem; }
+    h3 { margin-bottom: 2rem; color: #666; font-weight: normal; }
+    .box {
+      background: white;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      margin-bottom: 2rem;
+      border-radius: 8px;
     }
-    h2 { text-align: center; margin-bottom: 1rem; }
-    input, select, button {
-      width: 100%;
+    .pesan {
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.5rem;
+    }
+    .meta {
+      color: #555;
+      font-size: 0.9rem;
+    }
+    #form-pesan {
+      display: flex;
+      gap: 0.5rem;
+    }
+    #isi {
+      flex: 1;
       padding: 10px;
-      margin-top: 10px;
       font-size: 1rem;
     }
     button {
-      background: #007bff;
-      color: #fff;
+      padding: 10px 16px;
+      font-size: 1rem;
+      background: #28a745;
+      color: white;
       border: none;
       cursor: pointer;
       border-radius: 6px;
@@ -35,22 +51,19 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Login / Register</h2>
-    <form id="form-auth">
-      <input type="text" id="username" placeholder="Username (huruf kecil, tanpa spasi)" required />
-      <input type="password" id="pin" placeholder="PIN (4 digit)" required />
-      <select id="mode">
-        <option value="login">Login</option>
-        <option value="register">Register</option>
-      </select>
-      <button type="submit">Lanjut</button>
-    </form>
-  </div>
+  <h1>Forum Pesan Publik</h1>
+  <h3>Kirim pesanmu secara anonim atau terbuka ke semua orang.</h3>
+
+  <div class="box" id="pesan-box"></div>
+
+  <form id="form-pesan">
+    <input type="text" id="isi" placeholder="Tulis pesan..." required />
+    <button type="submit">Kirim</button>
+  </form>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, addDoc, collection, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDyF2VyiIK1DbZE29AdzkLYCSU4HB1z9qw",
@@ -61,35 +74,37 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const form = document.getElementById("form-auth");
-    const mode = document.getElementById("mode");
+    const username = localStorage.getItem("username");
+    if (!username) location.href = "index.html";
 
-    if (localStorage.getItem("username")) {
-      location.href = "main.html";
-    }
+    const pesanBox = document.getElementById("pesan-box");
 
-    form.addEventListener("submit", async (e) => {
+    const q = query(collection(db, "messages"), orderBy("timestamp", "asc"));
+    onSnapshot(q, (snap) => {
+      pesanBox.innerHTML = "";
+      snap.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement("div");
+        div.className = "pesan";
+        div.innerHTML = `
+          <div class="meta">${data.username || "anonim"}</div>
+          <div>${data.text}</div>
+        `;
+        pesanBox.appendChild(div);
+      });
+      pesanBox.scrollTop = pesanBox.scrollHeight;
+    });
+
+    document.getElementById("form-pesan").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const username = document.getElementById("username").value.trim();
-      const pin = document.getElementById("pin").value.trim();
-
-      if (!/^[a-z0-9]+$/.test(username)) return alert("Username hanya huruf kecil dan angka, tanpa spasi.");
-      if (!/^\d{4}$/.test(pin)) return alert("PIN harus 4 digit angka.");
-
-      const ref = doc(db, "users", username);
-
-      if (mode.value === "register") {
-        const check = await getDoc(ref);
-        if (check.exists()) return alert("Username sudah dipakai.");
-        await setDoc(ref, { pin });
-        localStorage.setItem("username", username);
-        location.href = "main.html";
-      } else {
-        const snap = await getDoc(ref);
-        if (!snap.exists() || snap.data().pin !== pin) return alert("Login gagal.");
-        localStorage.setItem("username", username);
-        location.href = "main.html";
-      }
+      const text = document.getElementById("isi").value.trim();
+      if (!text) return;
+      await addDoc(collection(db, "messages"), {
+        username,
+        text,
+        timestamp: serverTimestamp()
+      });
+      document.getElementById("isi").value = "";
     });
   </script>
 </body>
