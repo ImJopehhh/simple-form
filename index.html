@@ -3,67 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login/Register</title>
+  <title>Login Pesan</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 { text-align: center; margin-bottom: 1rem; }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 1rem;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+  </style>
 </head>
 <body>
-  <h2>Login / Register</h2>
-  <form id="form">
-    <input type="email" id="email" placeholder="Email" required />
-    <input type="password" id="password" placeholder="Password" required />
-    <select id="mode">
-      <option value="login">Login</option>
-      <option value="register">Register</option>
-    </select>
-    <select id="role" style="display:none">
-      <option value="member">Member</option>
-      <option value="admin">Admin</option>
-    </select>
-    <button type="submit">Lanjut</button>
-  </form>
+  <div class="container">
+    <h2>Login / Register</h2>
+    <form id="form-auth">
+      <input type="text" id="username" placeholder="Username (huruf kecil, tanpa spasi)" required />
+      <input type="password" id="pin" placeholder="PIN (4 digit)" required />
+      <select id="mode">
+        <option value="login">Login</option>
+        <option value="register">Register</option>
+      </select>
+      <button type="submit">Lanjut</button>
+    </form>
+  </div>
 
   <script type="module">
-    import { auth, db } from './firebase.js';
-    import {
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import {
-      doc, setDoc, getDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const form = document.getElementById("form");
-    const roleSelect = document.getElementById("role");
+    const firebaseConfig = {
+      apiKey: "AIzaSyDyF2VyiIK1DbZE29AdzkLYCSU4HB1z9qw",
+      authDomain: "form-project-da2d8.firebaseapp.com",
+      projectId: "form-project-da2d8",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.getElementById("form-auth");
     const mode = document.getElementById("mode");
 
-    mode.addEventListener("change", () => {
-      roleSelect.style.display = mode.value === "register" ? "block" : "none";
-    });
+    if (localStorage.getItem("username")) {
+      location.href = "main.html";
+    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = form.email.value;
-      const password = form.password.value;
-      const modeVal = mode.value;
-      const role = roleSelect.value;
+      const username = document.getElementById("username").value.trim();
+      const pin = document.getElementById("pin").value.trim();
 
-      try {
-        if (modeVal === "register") {
-          const userCred = await createUserWithEmailAndPassword(auth, email, password);
-          await setDoc(doc(db, "users", userCred.user.uid), {
-            email, role
-          });
-          alert("Registrasi berhasil. Login otomatis.");
-          location.href = "dashboard.html";
-        } else {
-          const userCred = await signInWithEmailAndPassword(auth, email, password);
-          const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
-          if (!userDoc.exists()) throw new Error("Akun tidak memiliki role.");
-          location.href = "dashboard.html";
-        }
-      } catch (err) {
-        alert("Error: " + err.message);
+      if (!/^[a-z0-9]+$/.test(username)) return alert("Username hanya huruf kecil dan angka, tanpa spasi.");
+      if (!/^\d{4}$/.test(pin)) return alert("PIN harus 4 digit angka.");
+
+      const ref = doc(db, "users", username);
+
+      if (mode.value === "register") {
+        const check = await getDoc(ref);
+        if (check.exists()) return alert("Username sudah dipakai.");
+        await setDoc(ref, { pin });
+        localStorage.setItem("username", username);
+        location.href = "main.html";
+      } else {
+        const snap = await getDoc(ref);
+        if (!snap.exists() || snap.data().pin !== pin) return alert("Login gagal.");
+        localStorage.setItem("username", username);
+        location.href = "main.html";
       }
     });
   </script>
 </body>
-  </html>
+</html>
