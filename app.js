@@ -1,7 +1,6 @@
-let isRegister = false;
 let currentUser = null;
+let isRegister = false;
 
-// Toggle Login <-> Register
 function toggleForm() {
   isRegister = !isRegister;
   document.getElementById('form-title').innerText = isRegister ? 'Register' : 'Login';
@@ -10,7 +9,6 @@ function toggleForm() {
   document.getElementById('auth-msg').innerText = '';
 }
 
-// Validasi username hanya huruf kecil dan angka
 function isValidUsername(username) {
   return /^[a-z0-9]+$/.test(username);
 }
@@ -23,34 +21,26 @@ async function handleLogin() {
     return;
   }
 
-  const email = `${username}@chatapp.fake`;
-  const password = "defaultpassword";
+  const userDoc = db.collection('users').doc(username);
 
-  try {
-    if (isRegister) {
-      await auth.createUserWithEmailAndPassword(email, password);
-      document.getElementById('auth-msg').innerText = `Akun '${username}' berhasil dibuat. Silakan login.`;
-      toggleForm();
-    } else {
-      await auth.signInWithEmailAndPassword(email, password);
-      currentUser = username;
-      loadChat();
+  if (isRegister) {
+    const doc = await userDoc.get();
+    if (doc.exists) {
+      document.getElementById('auth-msg').innerText = `Username '${username}' sudah terdaftar. Silakan login.`;
+      return;
     }
-  } catch (e) {
-    let msg = "Terjadi kesalahan.";
-    if (e.code === 'auth/user-not-found') {
-      msg = `Nama pengguna '${username}' belum terdaftar. Silakan buat akun baru.`;
-    } else if (e.code === 'auth/email-already-in-use') {
-      msg = `Nama pengguna '${username}' sudah terdaftar. Silakan login.`;
-    } else if (e.code === 'auth/invalid-email') {
-      msg = `Format username tidak valid.`;
-    } else if (e.code === 'auth/operation-not-allowed') {
-      msg = `Email/Password Authentication belum diaktifkan di Firebase.`;
-    } else if (e.code === 'auth/network-request-failed') {
-      msg = `Tidak bisa terhubung ke Firebase. Cek koneksi internet.`;
+    await userDoc.set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    document.getElementById('auth-msg').innerText = `Akun '${username}' berhasil dibuat. Silakan login.`;
+    toggleForm();
+  } else {
+    const doc = await userDoc.get();
+    if (!doc.exists) {
+      document.getElementById('auth-msg').innerText = `Username '${username}' belum terdaftar. Silakan register.`;
+      return;
     }
-    document.getElementById('auth-msg').innerText = msg;
-    console.error(e);
+    currentUser = username;
+    localStorage.setItem("chat_user", username);
+    loadChat();
   }
 }
 
@@ -85,5 +75,15 @@ function sendMessage() {
 }
 
 function logout() {
-  auth.signOut().then(() => location.reload());
+  localStorage.removeItem("chat_user");
+  location.reload();
 }
+
+// Auto-login kalau sudah tersimpan
+window.onload = () => {
+  const savedUser = localStorage.getItem("chat_user");
+  if (savedUser) {
+    currentUser = savedUser;
+    loadChat();
+  }
+};
