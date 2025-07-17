@@ -1,7 +1,7 @@
 let isRegister = false;
 let currentUser = null;
 
-// Toggle antara login dan register
+// Toggle Login <-> Register
 function toggleForm() {
   isRegister = !isRegister;
   document.getElementById('form-title').innerText = isRegister ? 'Register' : 'Login';
@@ -10,12 +10,11 @@ function toggleForm() {
   document.getElementById('auth-msg').innerText = '';
 }
 
-// Validasi username
+// Validasi username hanya huruf kecil dan angka
 function isValidUsername(username) {
   return /^[a-z0-9]+$/.test(username);
 }
 
-// Fungsi login atau register
 async function handleLogin() {
   const username = document.getElementById('username').value.trim();
 
@@ -38,17 +37,23 @@ async function handleLogin() {
       loadChat();
     }
   } catch (e) {
+    let msg = "Terjadi kesalahan.";
     if (e.code === 'auth/user-not-found') {
-      document.getElementById('auth-msg').innerText = `Nama pengguna '${username}' belum terdaftar. Silakan buat akun baru.`;
+      msg = `Nama pengguna '${username}' belum terdaftar. Silakan buat akun baru.`;
     } else if (e.code === 'auth/email-already-in-use') {
-      document.getElementById('auth-msg').innerText = `Nama pengguna '${username}' sudah terdaftar. Silakan login.`;
-    } else {
-      document.getElementById('auth-msg').innerText = 'Terjadi kesalahan.';
+      msg = `Nama pengguna '${username}' sudah terdaftar. Silakan login.`;
+    } else if (e.code === 'auth/invalid-email') {
+      msg = `Format username tidak valid.`;
+    } else if (e.code === 'auth/operation-not-allowed') {
+      msg = `Email/Password Authentication belum diaktifkan di Firebase.`;
+    } else if (e.code === 'auth/network-request-failed') {
+      msg = `Tidak bisa terhubung ke Firebase. Cek koneksi internet.`;
     }
+    document.getElementById('auth-msg').innerText = msg;
+    console.error(e);
   }
 }
 
-// Tampilkan chat
 function loadChat() {
   document.getElementById('auth-container').style.display = 'none';
   document.getElementById('chat-container').style.display = 'block';
@@ -66,7 +71,6 @@ function loadChat() {
   });
 }
 
-// Kirim pesan
 function sendMessage() {
   const text = document.getElementById("message-input").value.trim();
   if (text === "") return;
@@ -80,7 +84,6 @@ function sendMessage() {
   document.getElementById("message-input").value = "";
 }
 
-// Logout
 function logout() {
   auth.signOut().then(() => location.reload());
 }
